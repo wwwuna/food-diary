@@ -862,18 +862,32 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
     return rows;
   }
   document.getElementById("btnExportFoods").onclick = function(){
-    var aoa = buildFoodRows();
-    var ws = XLSX.utils.aoa_to_sheet(aoa);
-    var wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "食物选项");
-    var wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    var blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "diet-foods-" + nowStamp() + ".xlsx";
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+    try{
+      var aoa = buildFoodRows();
+      var ws = XLSX.utils.aoa_to_sheet(aoa);
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "食物选项");
+      var wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+      var blob = new Blob([wbout], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      var name = "diet-foods-" + nowStamp() + ".xlsx";
+      if(window.navigator.msSaveOrOpenBlob){ window.navigator.msSaveOrOpenBlob(blob, name); return; }
+      var isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) && !window.MSStream;
+      var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent) || isIOS;
+      var reader = new FileReader();
+      reader.onload = function(){
+        var dataUrl = reader.result;
+        var a = document.createElement("a");
+        a.href = dataUrl; a.download = name; a.style.display = "none";
+        document.body.appendChild(a); a.click(); a.remove();
+        if(isSafari){ setTimeout(function(){ window.location.href = dataUrl; }, 150); }
+      };
+      reader.readAsDataURL(blob);
+      if(isIOS){
+        setTimeout(function(){ alert("已生成 " + name + "。若未自动下载，请点顶部「下载」提示，或在预览页点「分享→存储到文件」。也可用电脑 Chrome 导出后通过坚果云同步到手机。"); }, 400);
+      }
+    }catch(err){
+      alert("导出失败：" + (err && err.message ? err.message : err) + "\n请刷新页面后重试，或改用电脑 Chrome 浏览器操作。");
+    }
   };
   document.getElementById("btnImportFoods").onclick = function(){ document.getElementById("fileImportFoods").click(); };
   function importFoodsFromRows(rows){
@@ -925,21 +939,40 @@ var o=[];var l=Array.isArray(e);for(f=n.s.c;f<=n.e.c;++f)s[f]=ya(f);for(var c=n.
   document.getElementById("fileImportFoods").onchange = function(e){
     var file = e.target.files[0]; if(!file) return;
     var nm = (file.name || "").toLowerCase();
+    function fail(detail){
+      alert("导入失败：" + (detail || "文件格式不正确") + "\n文件：" + file.name + "\n大小：" + (file.size||0) + " 字节\n\n若是 .xlsx，常见原因：被微信/QQ 传输损坏，建议改用坚果云同步；若是 CSV 改的后缀，请改回 .csv 再导入。");
+    }
     if(nm.endsWith(".xlsx") || nm.endsWith(".xls")){
       var r = new FileReader();
       r.onload = function(){
         try{
-          var wb = XLSX.read(new Uint8Array(r.result), { type: "array" });
+          var buf = r.result;
+          var u8 = new Uint8Array(buf);
+          if(u8.length < 4 || u8[0] !== 0x50 || u8[1] !== 0x4B){
+            throw new Error("文件开头不是 PK 签名，不是真正的 .xlsx（可能是 CSV/文本改了后缀）");
+          }
+          var wb;
+          try { wb = XLSX.read(u8, { type: "array" }); }
+          catch(e1){
+            try { wb = XLSX.read(buf, { type: "binary" }); }
+            catch(e2){
+              if(nm.endsWith(".xls")) throw new Error("旧版 .xls 不支持，请在 Excel/WPS 另存为 .xlsx");
+              throw new Error("xlsx 解析失败，文件可能已损坏（微信/QQ 传输常见）");
+            }
+          }
           var ws = wb.Sheets[wb.SheetNames[0]];
+          if(!ws) throw new Error("文件中没有工作表");
           var rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+          if(!rows || rows.length < 1) throw new Error("文件内容为空");
           importFoodsFromRows(rows);
-        }catch(err){ alert("导入失败:文件格式不正确"); }
+        }catch(err){ fail(err && err.message ? err.message : "文件格式不正确"); }
       };
+      r.onerror = function(){ fail("手机无法读取该文件，请用坚果云同步，不要用微信传输"); };
       r.readAsArrayBuffer(file);
     } else {
       readFile(file, function(text){
         try{ importFoodsFromRows(parseCSV(text)); }
-        catch(err){ alert("导入失败:文件格式不正确"); }
+        catch(err){ fail(err && err.message ? err.message : "CSV 格式不正确"); }
       });
     }
     e.target.value = "";
