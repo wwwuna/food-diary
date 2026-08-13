@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>饮食记录 v3</title>
+<style>
+  :root{
+    --bg:#f6f6f4; --card:#ffffff; --line:#e3e3de; --line2:#d0d0c9;
+    --text:#2c2c2a; --sub:#77756e; --accent:#d85a30; --accent-bg:#faeee7; --accent-line:#f0997b;
+    --tag:#f1efe8; --tag-line:#d3d1c7; --radius:12px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; background:var(--bg); color:var(--text); padding:20px 14px 40px; line-height:1.5;}
+  .wrap{max-width:640px; margin:0 auto;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:18px 20px; margin-bottom:14px;}
+  h1{font-size:20px; font-weight:600;}
+  .date{font-size:13px; color:var(--sub); margin:2px 0 16px;}
+  .date-row{display:flex; align-items:center; gap:10px; margin:4px 0 16px; font-size:13px; color:var(--sub); flex-wrap:wrap;}
+  .date-input{font-size:16px; padding:5px 8px; border:1px solid var(--line2); border-radius:6px; background:#fff; color:var(--text); font-family:inherit; outline:none; color-scheme:light;}
+  .date-input:focus{border-color:var(--accent-line);}
+  .date-week{color:var(--text); font-weight:500;}
+  .back-btn{font-size:12px; padding:4px 11px; border:1px solid var(--line2); border-radius:12px; background:#fff; color:var(--sub); cursor:pointer; margin-left:auto;}
+  .back-btn:hover{color:var(--accent); border-color:var(--accent-line);}
+  .rec-mode{padding:4px 10px; font-size:12px; border:1px solid var(--accent-line); border-radius:10px; color:var(--accent); background:var(--accent-bg);}
+  .field{display:flex; align-items:flex-start; gap:10px; margin-bottom:12px;}
+  .label{width:52px; font-size:13px; color:var(--sub); flex-shrink:0; padding-top:9px;}
+  .row{flex:1; min-width:0;}
+  select, input[type=text]{
+    width:100%; padding:8px 10px; font-size:16px; border:1px solid var(--line2);
+    border-radius:8px; background:#fff; color:var(--text); outline:none;
+  }
+  select:focus, input[type=text]:focus{border-color:var(--accent-line);}
+  .types{display:flex; gap:8px; flex-wrap:wrap;}
+  .chip{padding:6px 16px; font-size:13px; border:1px solid var(--line2); border-radius:20px; cursor:pointer; user-select:none; color:var(--sub); background:#fff;}
+  .chip.on{background:var(--accent-bg); border-color:var(--accent-line); color:var(--accent);}
+  /* 通用多选下拉 */
+  .multisel{position:relative;}
+  .ms-trigger{width:100%; padding:8px 10px; font-size:14px; border:1px solid var(--line2); border-radius:8px; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .ms-trigger .ph{color:var(--sub); font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .ms-caret{color:var(--sub); font-size:11px; flex-shrink:0;}
+  .ms-panel{position:absolute; top:calc(100% + 4px); left:0; right:0; background:#fff; border:1px solid var(--line2); border-radius:10px; box-shadow:0 4px 16px rgba(0,0,0,.08); max-height:260px; overflow:auto; z-index:50; display:none;}
+  .ms-panel.open{display:block;}
+  .ms-search{padding:8px 10px; font-size:16px; border:none; border-bottom:1px solid var(--line); width:100%; box-sizing:border-box; outline:none; background:#fff; color:var(--text);}
+  .ms-search:focus{border-bottom-color:var(--accent-line);}
+  .ms-search::placeholder{color:var(--sub);}
+  .ms-new{padding:9px 12px; font-size:13px; color:var(--accent); cursor:pointer; border-bottom:1px solid var(--line);}
+  .ms-new:hover{background:var(--accent-bg);}
+  .ms-item{padding:8px 12px; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:8px;}
+  .ms-item:hover{background:#fafaf8;}
+  .ms-item .box{width:15px; height:15px; border:1px solid var(--line2); border-radius:4px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; color:#fff;}
+  .ms-item.checked .box{background:var(--accent); border-color:var(--accent);}
+  .ms-item .txt{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .ms-del{margin-left:auto; font-size:11px; color:var(--sub); cursor:pointer; padding:2px 7px; border-radius:4px; flex-shrink:0;}
+  .ms-del:hover{color:#fff; background:var(--accent);}
+  .ms-empty{padding:10px 12px; font-size:13px; color:var(--sub);}
+  .ms-chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
+  .tag{display:inline-flex; align-items:center; gap:5px; background:var(--tag); border:1px solid var(--tag-line); border-radius:6px; padding:3px 8px; font-size:12px; color:var(--text);}
+  .tag .x{cursor:pointer; color:var(--sub); font-style:normal;}
+  .tag .x:hover{color:var(--accent);}
+  /* 食物明细(做法/份量) */
+  .fd-block{border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-bottom:10px; background:#fafaf8;}
+  .fd-block:last-child{margin-bottom:0;}
+  .fd-name{font-size:14px; font-weight:600; margin-bottom:8px;}
+  .fd-row{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+  .fd-lbl{width:38px; font-size:13px; color:var(--sub); flex-shrink:0;}
+  .fd-row input{flex:1; min-width:0;}
+  .fd-row:last-child{margin-bottom:0;}
+  /* 几分饱 */
+  .fullness{display:flex; align-items:center; gap:5px; flex-wrap:wrap;}
+  .dot{width:20px; height:20px; border-radius:50%; border:1.5px solid var(--line2); cursor:pointer; background:#fff;}
+  .dot.on{background:var(--accent); border-color:var(--accent);}
+  .fullness-val{font-size:13px; color:var(--sub); margin-left:6px;}
+  /* 按钮 */
+  .btn{padding:9px 24px; font-size:14px; border:none; border-radius:8px; cursor:pointer;}
+  .btn-primary{background:var(--accent); color:#fff;}
+  .btn-ghost{background:#fff; border:1px solid var(--line2); color:var(--sub);}
+  .actions{display:flex; justify-content:flex-end; gap:8px;}
+  /* 记录列表 */
+  .sec-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:wrap;}
+  .sec-title{font-size:14px; font-weight:600;}
+  .btn-sm{padding:5px 12px; font-size:12px;}
+  .btn-sm.ok{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .rec{border-bottom:1px solid var(--line); padding:10px 0; position:relative; padding-right:150px;}
+  .rec:last-child{border-bottom:none;}
+  .rec .rt{font-size:13px; font-weight:600; margin-bottom:4px; overflow-wrap:anywhere; word-break:break-word;}
+  .rec .rm{flex:1; min-width:0;}
+  .rec .rtype{display:inline-block; font-size:12px; background:var(--tag); border:1px solid var(--tag-line); border-radius:5px; padding:1px 7px; margin-right:6px;}
+  .rec .rfood{font-size:13px;}
+  .rec .rmeta{font-size:12px; color:var(--sub); margin-top:3px;}
+  .rec .rnote{font-size:12px; color:var(--sub); margin-top:3px; white-space:pre-wrap; word-break:break-all;}
+  .rec .act{position:absolute; top:8px; right:0; display:flex; gap:6px;}
+  .rec .edit{font-size:12px; color:var(--sub); cursor:pointer; padding:3px 10px; border:1px solid var(--line2); border-radius:12px; background:#fff; user-select:none;}
+  .rec .edit:hover{color:var(--accent); border-color:var(--accent-line);}
+  .rec .del{font-size:12px; color:var(--sub); cursor:pointer; padding:3px 10px; border:1px solid var(--line2); border-radius:12px; background:#fff; user-select:none;}
+  .rec .del:hover{color:var(--accent); border-color:var(--accent-line);}
+  .rec.editing{background:var(--accent-bg);}
+  .rec.confirming{background:#fbeae6;}
+  .rec.confirming .del{background:var(--accent); color:#fff; border-color:var(--accent);}
+  .rec.confirming .del:hover{color:#fff; background:var(--accent);}
+  .empty{font-size:13px; color:var(--sub); text-align:center; padding:14px 0;}
+  /* 工具条 */
+  .toolbar{display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap;}
+  .hint{margin-top:8px;}
+  .hint-toggle{display:flex; align-items:center; gap:6px; font-size:12px; color:var(--sub); cursor:pointer; user-select:none; line-height:1.6;}
+  .hint-toggle .hint-arrow{display:inline-block; transition:transform .2s; font-size:10px;}
+  .hint-toggle.open .hint-arrow{transform:rotate(90deg);}
+  .hint-body{display:none; font-size:12px; color:var(--sub); margin-top:8px; line-height:1.6;}
+  .hint-body.open{display:block;}
+  .hint-body b{color:var(--text); font-weight:600;}
+  .footer{text-align:center; font-size:12px; color:var(--sub); margin-top:18px; line-height:1.7;}
+  .footer a{color:var(--sub); text-decoration:none;}
+  .footer a:hover{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card">
+    <h1>饮食记录 v3</h1>
+    <div class="date-row">
+      <input type="date" id="dateInput" class="date-input">
+      <span id="weekLine" class="date-week">—</span>
+      <span id="recMode" class="rec-mode" style="display:none;">补录</span>
+      <button class="back-btn" id="backToday" style="display:none;">回到今天</button>
+    </div>
+
+    <div class="field">
+      <span class="label">时段</span>
+      <div class="row" id="timeField"></div>
+    </div>
+
+    <div class="field">
+      <span class="label">类型</span>
+      <div class="row types" id="typeBtns"></div>
+    </div>
+
+    <div class="field">
+      <span class="label">食物</span>
+      <div class="row" id="foodField"></div>
+    </div>
+
+    <div class="field" id="foodDetailField" style="display:none;">
+      <span class="label">明细</span>
+      <div class="row" id="foodDetailBox"></div>
+    </div>
+
+    <div class="field">
+      <span class="label">几分饱</span>
+      <div class="row">
+        <div class="fullness" id="fullnessDots"></div>
+        <span class="fullness-val" id="fullnessVal">未选</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="label">目的</span>
+      <div class="row types" id="motiveBtns"></div>
+    </div>
+
+    <div class="field">
+      <span class="label">备注</span>
+      <div class="row"><input type="text" id="inNote" placeholder="可选,如:和家人一起吃的"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-ghost" id="btnCancelEdit" style="display:none;">取消修改</button>
+      <button class="btn btn-primary" id="btnSave">保存本条</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-head">
+      <div class="sec-title" id="todayTitle">今日已记录(按时间排序)</div>
+      <button class="btn btn-ghost btn-sm" id="btnCopy">复制到剪切板</button>
+    </div>
+    <div id="todayList"><div class="empty">今天还没有记录</div></div>
+  </div>
+
+  <div class="card">
+    <div class="sec-title">数据管理</div>
+    <div class="toolbar">
+      <button class="btn btn-ghost" id="btnExportAll">全部导出</button>
+      <button class="btn btn-ghost" id="btnImportAll">全部导入</button>
+      <button class="btn btn-ghost" id="btnExportFoods">食物导出</button>
+      <button class="btn btn-ghost" id="btnImportFoods">食物导入</button>
+      <input type="file" id="fileImportAll" accept=".csv" style="display:none">
+      <input type="file" id="fileImportFoods" accept=".csv" style="display:none">
+    </div>
+    <div class="hint">
+      <div class="hint-toggle" id="hintToggle"><span class="hint-arrow">▶</span><span>使用说明（点击展开）</span></div>
+      <div class="hint-body" id="hintBody">
+        记录自动保存在本机浏览器,关闭不丢失;<b>换设备前先点「全部导出」</b>备份 CSV,新设备点「全部导入」恢复。<br>
+        <b>食物批量录入(电脑写、手机用):</b>点「食物导出」得到含表头的模板 CSV(四列:正餐、饮品、零食、水果)。在电脑 Excel 中按规则填好后保存、再点「食物导入」一次性加入手机选项,免去一个个敲。<b>填写规则:</b><br>
+        &nbsp;&nbsp;· 列头固定为「正餐」「饮品」「零食」「水果」,各列<b>竖向</b>填写该类别的选项,每行一个;<br>
+        &nbsp;&nbsp;· 某一列选项少的,下方<b>留空</b>即可,不会报错;<br>
+        &nbsp;&nbsp;· 不要删除/改名首行表头(正餐、饮品、零食、水果);<br>
+        &nbsp;&nbsp;· 保存时选「CSV(逗号分隔)」,不要用 .xlsx;<br>
+        &nbsp;&nbsp;· 导入为<b>合并追加</b>(新增且去重,不会删除已有选项)。<br>
+        &nbsp;&nbsp;示例一行:&nbsp;排骨,美式咖啡,坚果,蓝莓&nbsp;(分别落入四个类别)<br>
+        食物列表「删」可移除已存选项(不影响历史记录)。<br>
+        顶部日期可点开调整:<b>默认今天</b>;选择过去日期即<b>补录模式</b>,下面的记录/导出都跟着切换;点「回到今天」一键返回。<br>
+        每条记录右侧「修改」可载入表单编辑,改完点「保存修改」更新;「删除」为两步确认防误删。食物列表默认无预设,用「＋ 新加入选项」自行添加。
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  饮食记录 · 个人数据工具 © 2026 aaawuna@163.com · 保留全部权利<br>
+  记录数据归本人所有，仅本地保存
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var TYPES = ["正餐", "饮品", "零食", "水果"];
+  var MOTIVES = ["饿", "馋", "按时", "其他"];
+
+  /* 旧版预设食物:仅用于一次性迁移清理,移除后不再作为默认选项 */
+  var LEGACY_DEFAULT_FOODS = {
+    "正餐": ["米饭","面条","粥","饺子","馒头","包子","鸡蛋","鸡肉","鱼肉","猪肉","牛肉","蔬菜","豆腐","汤"],
+    "饮品": ["水","美式咖啡","拿铁","奶茶","茶","果汁","牛奶","酸奶","豆浆","可乐","气泡水"],
+    "零食": ["薯片","饼干","巧克力","蛋糕","面包","坚果","辣条","冰淇淋"],
+    "水果": ["苹果","香蕉","橙子","梨","西瓜","葡萄","草莓","桃子","蓝莓"]
+  };
+
+  var LS_KEY = "foodDiary_v1";
+
+  function loadData(){
+    try{
+      var d = JSON.parse(localStorage.getItem(LS_KEY) || "null");
+      if(!d || typeof d !== "object") throw 0;
+      if(!d.foods) d.foods = {};
+      if(!d.records) d.records = {};
+      TYPES.forEach(function(t){ if(!d.foods[t]) d.foods[t] = []; });
+      /* 一次性迁移:移除旧版预设选项,仅保留用户自行添加的食物 */
+      if(!d._cleanPresets){
+        TYPES.forEach(function(t){
+          d.foods[t] = d.foods[t].filter(function(f){ return LEGACY_DEFAULT_FOODS[t].indexOf(f) === -1; });
+        });
+        d._cleanPresets = true;
+      }
+      return d;
+    }catch(e){
+      var foods = {};
+      TYPES.forEach(function(t){ foods[t] = []; });
+      return { foods: foods, records: {}, _cleanPresets: true };
+    }
+  }
+  var data = loadData();
+  var editingRec = null;
+  var foodInfoDraft = {};
+  function saveData(){ localStorage.setItem(LS_KEY, JSON.stringify(data)); }
+
+  /* ---------- 工具 ---------- */
+  function pad(n){ return n < 10 ? "0" + n : "" + n; }
+  function fmtDateByStr(s){
+    var d = new Date(s + "T00:00:00");
+    var w = ["日","一","二","三","四","五","六"];
+    return d.getFullYear() + "年" + (d.getMonth()+1) + "月" + d.getDate() + "日 · 星期" + w[d.getDay()];
+  }
+  function todayStr(d){
+    d = d || new Date();
+    return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate());
+  }
+  /* 日期+时间,用于导出文件命名(避免冒号,兼容 Windows 文件名) */
+  function nowStamp(){
+    var d = new Date();
+    return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate())
+         + "_" + pad(d.getHours()) + "-" + pad(d.getMinutes()) + "-" + pad(d.getSeconds());
+  }
+  function sortZh(arr){
+    return arr.slice().sort(function(a,b){ return a.localeCompare(b, "zh-Hans-CN"); });
+  }
+  /* 合并连续时段:["12:00-12:30","12:30-13:00"] -> ["12:00-13:00"] */
+  function mergeSlots(slots){
+    if(!slots.length) return [];
+    var sorted = slots.slice().sort();
+    var out = [];
+    var start = sorted[0].split("-")[0], end = sorted[0].split("-")[1];
+    for(var i = 1; i < sorted.length; i++){
+      var s = sorted[i].split("-")[0], e = sorted[i].split("-")[1];
+      if(s === end){ end = e; }
+      else { out.push(start + "-" + end); start = s; end = e; }
+    }
+    out.push(start + "-" + end);
+    return out;
+  }
+  /* 兼容旧数据:一条记录可能是 time(字符串)或 times(数组) */
+  function getTimes(r){ return r.times ? r.times.slice() : (r.time ? [r.time] : []); }
+  function showTimes(r){ return mergeSlots(getTimes(r)).join("、"); }
+
+  /* ---------- 通用多选组件 ---------- */
+  function createMultiSelect(cfg){
+    var root = document.createElement("div");
+    root.className = "multisel";
+    root.innerHTML =
+      '<div class="ms-trigger"><span class="ph"></span><span class="ms-caret">▼</span></div>' +
+      '<div class="ms-panel"></div>' +
+      '<div class="ms-chips"></div>';
+    var trigger = root.querySelector(".ms-trigger");
+    var panel = root.querySelector(".ms-panel");
+    var ph = root.querySelector(".ph");
+    var chipsBox = root.querySelector(".ms-chips");
+    var state = { selected: [], keyword: "" };
+
+    trigger.onclick = function(e){ e.stopPropagation(); panel.classList.toggle("open"); render(); };
+    document.addEventListener("click", function(e){ if(!root.contains(e.target)) panel.classList.remove("open"); });
+
+    function render(){
+      panel.innerHTML = "";
+      if(cfg.searchable){
+        var si = document.createElement("input");
+        si.className = "ms-search";
+        si.type = "text";
+        si.placeholder = "搜索...";
+        si.value = state.keyword;
+        si.onclick = function(e){ e.stopPropagation(); };
+        si.oninput = function(e){
+          state.keyword = e.target.value;
+          var pos = e.target.selectionStart;
+          render();
+          var newSi = panel.querySelector(".ms-search");
+          if(newSi){ newSi.focus(); try{ newSi.setSelectionRange(pos, pos); }catch(_){} }
+        };
+        panel.appendChild(si);
+      }
+      if(cfg.newLabel){
+        var n = document.createElement("div");
+        n.className = "ms-new";
+        n.textContent = cfg.newLabel;
+        n.onclick = function(e){
+          e.stopPropagation();
+          cfg.onNew(state, function(){ render(); renderChips(); });
+        };
+        panel.appendChild(n);
+      }
+      var allOpts = cfg.getOptions();
+      var kw = state.keyword.trim().toLowerCase();
+      var opts = kw ? allOpts.filter(function(o){ return o.toLowerCase().indexOf(kw) > -1; }) : allOpts;
+      if(opts.length === 0 && !cfg.newLabel){
+        var em = document.createElement("div");
+        em.className = "ms-empty";
+        em.textContent = kw ? "无匹配项,试试上方「＋ 新加入选项」" : "暂无选项";
+        panel.appendChild(em);
+      }
+      opts.forEach(function(o){
+        var d = document.createElement("div");
+        d.className = "ms-item" + (state.selected.indexOf(o) > -1 ? " checked" : "");
+        d.innerHTML = '<span class="box">✓</span><span class="txt"></span>';
+        d.querySelector(".txt").textContent = o;
+        d.onclick = function(){
+          var idx = state.selected.indexOf(o);
+          if(idx > -1){ state.selected.splice(idx,1); } else { state.selected.push(o); }
+          render(); renderChips();
+          if(cfg.onChange) cfg.onChange(state.selected.slice());
+        };
+        if(cfg.withRemove){
+          var x = document.createElement("span");
+          x.className = "ms-del";
+          x.textContent = "删";
+          x.onclick = function(e){
+            e.stopPropagation();
+            cfg.onRemove(o, state, function(){ render(); renderChips(); });
+          };
+          d.appendChild(x);
+        }
+        panel.appendChild(d);
+      });
+      ph.textContent = state.selected.length ? "" : cfg.placeholder;
+    }
+    function renderChips(){
+      chipsBox.innerHTML = "";
+      state.selected.forEach(function(o){
+        var t = document.createElement("span");
+        t.className = "tag";
+        t.innerHTML = "<span></span><i class=\"x\">×</i>";
+        t.firstChild.textContent = o;
+        t.querySelector(".x").onclick = function(){
+          var idx = state.selected.indexOf(o);
+          if(idx > -1) state.selected.splice(idx,1);
+          render(); renderChips();
+          if(cfg.onChange) cfg.onChange(state.selected.slice());
+        };
+        chipsBox.appendChild(t);
+      });
+    }
+    render(); renderChips();
+    return {
+      root: root,
+      getSelected: function(){ return state.selected.slice(); },
+      setSelected: function(arr){ state.selected = arr.slice(); render(); renderChips(); },
+      clear: function(){ state.selected = []; render(); renderChips(); }
+    };
+  }
+
+  /* ---------- 时段多选(以 7:00 为起点循环排列) ---------- */
+  var TIME_SLOTS = [];
+  (function buildSlots(){
+    for(var h = 0; h < 24; h++){
+      var s1 = pad(h) + ":00", s2 = pad(h) + ":30";
+      var e1 = pad(h) + ":30", e2 = (h === 23) ? "24:00" : pad(h+1) + ":00";
+      TIME_SLOTS.push(s1 + "-" + e1);
+      TIME_SLOTS.push(s2 + "-" + e2);
+    }
+    /* 以 07:00 为起点循环:7:00 之前的时段排到末尾 */
+    var start = TIME_SLOTS.indexOf("07:00-07:30");
+    if(start > -1) TIME_SLOTS = TIME_SLOTS.slice(start).concat(TIME_SLOTS.slice(0, start));
+  })();
+  var timeSel = createMultiSelect({
+    placeholder: "选择时段(可多选)",
+    getOptions: function(){ return TIME_SLOTS; }
+  });
+  document.getElementById("timeField").appendChild(timeSel.root);
+  (function defaultTime(){
+    var now = new Date(), cur = pad(now.getHours()) + ":" + pad(now.getMinutes());
+    for(var i = 0; i < TIME_SLOTS.length; i++){
+      var st = TIME_SLOTS[i].split("-")[0], et = TIME_SLOTS[i].split("-")[1];
+      if(st <= cur && cur < et){ timeSel.setSelected([TIME_SLOTS[i]]); return; }
+    }
+  })();
+
+  /* ---------- 类型按钮 ---------- */
+  var curType = TYPES[0];
+  (function buildTypeBtns(){
+    var box = document.getElementById("typeBtns");
+    TYPES.forEach(function(t){
+      var s = document.createElement("span");
+      s.className = "chip" + (t === curType ? " on" : "");
+      s.textContent = t;
+      s.onclick = function(){ curType = t; refreshTypeBtns(); };
+      box.appendChild(s);
+    });
+  })();
+  function refreshTypeBtns(){
+    var box = document.getElementById("typeBtns");
+    for(var i = 0; i < box.children.length; i++){
+      box.children[i].className = "chip" + (TYPES[i] === curType ? " on" : "");
+    }
+  }
+
+  /* ---------- 目的 按钮 ---------- */
+  var motive = "";
+  (function buildMotiveBtns(){
+    var box = document.getElementById("motiveBtns");
+    MOTIVES.forEach(function(m){
+      var s = document.createElement("span");
+      s.className = "chip";
+      s.textContent = m;
+      s.onclick = function(){
+        motive = (motive === m) ? "" : m;
+        refreshMotiveBtns();
+      };
+      box.appendChild(s);
+    });
+  })();
+  function refreshMotiveBtns(){
+    var box = document.getElementById("motiveBtns");
+    for(var i = 0; i < box.children.length; i++){
+      box.children[i].className = "chip" + (MOTIVES[i] === motive ? " on" : "");
+    }
+  }
+
+  /* ---------- 食物多选(带新增与删除) ---------- */
+  var foodSel = createMultiSelect({
+    placeholder: "选择食物(可多选)",
+    searchable: true,
+    onChange: function(){ renderFoodDetail(); },
+    newLabel: "＋ 新加入选项",
+    getOptions: function(){ return sortZh(data.foods[curType]); },
+    onNew: function(state, rerender){
+      var name = prompt("输入新的食物名称(将加入「" + curType + "」列表):", "");
+      if(!name || !name.trim()) return;
+      name = name.trim();
+      if(data.foods[curType].indexOf(name) > -1){
+        if(state.selected.indexOf(name) === -1) state.selected.push(name);
+      } else {
+        data.foods[curType].push(name);
+        state.selected.push(name);
+        saveData();
+      }
+      rerender();
+      renderFoodDetail();
+    },
+    withRemove: true,
+    onRemove: function(food, state, rerender){
+      if(!confirm("从「" + curType + "」列表中删除「" + food + "」?(历史记录不受影响)")) return;
+      var arr = data.foods[curType];
+      var i = arr.indexOf(food);
+      if(i > -1) arr.splice(i, 1);
+      var j = state.selected.indexOf(food);
+      if(j > -1) state.selected.splice(j, 1);
+      saveData();
+      rerender();
+    }
+  });
+  document.getElementById("foodField").appendChild(foodSel.root);
+
+  /* 每种选中食物对应一张「做法/份量」卡片 */
+  function renderFoodDetail(){
+    var box = document.getElementById("foodDetailBox");
+    var field = document.getElementById("foodDetailField");
+    var sel = foodSel.getSelected();
+    Object.keys(foodInfoDraft).forEach(function(k){ if(sel.indexOf(k) === -1) delete foodInfoDraft[k]; });
+    if(sel.length === 0){ box.innerHTML = ""; field.style.display = "none"; return; }
+    field.style.display = "";
+    box.innerHTML = "";
+    sel.forEach(function(name){
+      var info = foodInfoDraft[name] || { method:"", portion:"" };
+      var blk = document.createElement("div");
+      blk.className = "fd-block";
+      blk.innerHTML =
+        '<div class="fd-name"></div>' +
+        '<div class="fd-row"><span class="fd-lbl">做法</span><input type="text" class="fd-method" placeholder="如:清蒸、水煮、生食"></div>' +
+        '<div class="fd-row"><span class="fd-lbl">份量</span><input type="text" class="fd-portion" placeholder="如:1碗、200克、1杯"></div>';
+      blk.querySelector(".fd-name").textContent = name;
+      var m = blk.querySelector(".fd-method"), p = blk.querySelector(".fd-portion");
+      m.value = info.method; p.value = info.portion;
+      m.oninput = function(){ foodInfoDraft[name] = foodInfoDraft[name] || {}; foodInfoDraft[name].method = m.value; };
+      p.oninput = function(){ foodInfoDraft[name] = foodInfoDraft[name] || {}; foodInfoDraft[name].portion = p.value; };
+      box.appendChild(blk);
+    });
+  }
+
+  /* ---------- 几分饱(1-10) ---------- */
+  var fullness = 0;
+  (function buildFullness(){
+    var box = document.getElementById("fullnessDots");
+    for(var i = 1; i <= 10; i++){
+      (function(n){
+        var d = document.createElement("span");
+        d.className = "dot";
+        d.onclick = function(){ fullness = (fullness === n) ? 0 : n; refreshFullness(); };
+        box.appendChild(d);
+      })(i);
+    }
+  })();
+  function refreshFullness(){
+    var dots = document.getElementById("fullnessDots").children;
+    for(var i = 0; i < dots.length; i++){
+      dots[i].className = "dot" + (i < fullness ? " on" : "");
+    }
+    document.getElementById("fullnessVal").textContent = fullness ? fullness + " 分饱" : "未选";
+  }
+
+  /* ---------- 当前选中日期 ---------- */
+  var curDate = todayStr();
+  function currentRecords(){
+    return data.records[curDate] || [];
+  }
+  function isToday(){
+    return curDate === todayStr();
+  }
+  function resetForm(keepTimeType){
+    if(!keepTimeType){
+      timeSel.clear();
+      curType = TYPES[0]; refreshTypeBtns();
+    }
+    foodSel.clear();
+    foodInfoDraft = {};
+    document.getElementById("foodDetailBox").innerHTML = "";
+    document.getElementById("foodDetailField").style.display = "none";
+    fullness = 0; refreshFullness();
+    motive = ""; refreshMotiveBtns();
+    document.getElementById("inNote").value = "";
+  }
+  function exitEditUI(){
+    editingRec = null;
+    document.getElementById("btnSave").textContent = "保存本条";
+    document.getElementById("btnCancelEdit").style.display = "none";
+    document.querySelectorAll(".rec.editing").forEach(function(el){ el.classList.remove("editing"); });
+  }
+  function startEdit(r, row){
+    editingRec = r;
+    curType = r.type; refreshTypeBtns();
+    timeSel.setSelected(getTimes(r));
+    foodSel.setSelected(r.foods || []);
+    foodInfoDraft = {};
+    if(r.foodInfo){
+      Object.keys(r.foodInfo).forEach(function(k){ foodInfoDraft[k] = { method: r.foodInfo[k].method || "", portion: r.foodInfo[k].portion || "" }; });
+    }
+    renderFoodDetail();
+    fullness = r.fullness || 0; refreshFullness();
+    motive = r.motive || ""; refreshMotiveBtns();
+    document.getElementById("inNote").value = r.note || "";
+    document.getElementById("btnSave").textContent = "保存修改";
+    document.getElementById("btnCancelEdit").style.display = "inline-block";
+    document.querySelectorAll(".rec.editing").forEach(function(el){ el.classList.remove("editing"); });
+    if(row) row.classList.add("editing");
+    window.scrollTo({ top:0, behavior:"smooth" });
+  }
+  function renderToday(){
+    var list = currentRecords().slice().sort(function(a,b){
+      var at = getTimes(a)[0] || "", bt = getTimes(b)[0] || "";
+      return at.localeCompare(bt);
+    });
+    var box = document.getElementById("todayList");
+    var titleEl = document.getElementById("todayTitle");
+    var today = isToday();
+    titleEl.textContent = (today ? "今日已记录" : (curDate + " 已记录")) + "(按时间排序)";
+    if(list.length === 0){
+      box.innerHTML = '<div class="empty">' + (today ? "今天" : curDate) + "还没有记录</div>";
+      return;
+    }
+    box.innerHTML = "";
+    list.forEach(function(r, idx){
+      var row = document.createElement("div");
+      row.className = "rec" + (editingRec === r ? " editing" : "");
+      var meta = [];
+      if(r.amount) meta.push(r.amount);
+      if(r.fullness) meta.push(r.fullness + "分饱");
+      if(r.motive) meta.push(r.motive);
+      row.innerHTML =
+        '<span class="rt">' + showTimes(r) + '</span>' +
+        '<div class="rm">' +
+          '<span class="rtype">' + r.type + '</span>' + foodsHtml(r) +
+          (meta.length ? '<div class="rmeta">' + meta.join(" · ") + "</div>" : "") +
+          (r.note ? '<div class="rnote">' + escapeHtml(r.note) + "</div>" : "") +
+        "</div>" +
+        '<div class="act"><span class="edit">修改</span><span class="del">删除</span></div>';
+      row.querySelector(".edit").onclick = function(){ startEdit(r, row); };
+      row.querySelector(".del").onclick = function(){
+        if(row.classList.contains("confirming")){
+          var arr = currentRecords();
+          arr.splice(idx, 1);
+          if(editingRec === r) exitEditUI();
+          saveData(); renderToday();
+        } else {
+          row.classList.add("confirming");
+          row.querySelector(".del").textContent = "确认删除?";
+          setTimeout(function(){
+            if(row.classList.contains("confirming")){
+              row.classList.remove("confirming");
+              row.querySelector(".del").textContent = "删除";
+            }
+          }, 3000);
+        }
+      };
+      box.appendChild(row);
+    });
+  }
+  function escapeHtml(s){
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  }
+  function foodsHtml(r){
+    var arr = r.foods || [];
+    if(!arr.length) return "";
+    return arr.map(function(f){
+      var info = (r.foodInfo && r.foodInfo[f]) || {};
+      var parts = [];
+      if(info.method) parts.push("做法:" + info.method);
+      if(info.portion) parts.push("份量:" + info.portion);
+      return '<span class="rfood">' + escapeHtml(f) + (parts.length ? "（" + parts.join("；") + "）" : "") + "</span>";
+    }).join("");
+  }
+
+  /* ---------- 保存 ---------- */
+  document.getElementById("btnSave").onclick = function(){
+    var times = timeSel.getSelected();
+    if(times.length === 0){ alert("请至少选择一个时段"); return; }
+    if(foodSel.getSelected().length === 0){ alert("请至少选择一个食物"); return; }
+    var foods = foodSel.getSelected();
+    var foodInfo = {};
+    foods.forEach(function(f){ foodInfo[f] = foodInfoDraft[f] || { method:"", portion:"" }; });
+    var rec = {
+      times: times,
+      type: curType,
+      foods: foods,
+      foodInfo: foodInfo,
+      fullness: fullness,
+      motive: motive,
+      note: document.getElementById("inNote").value.trim()
+    };
+    var d = curDate;
+    if(!data.records[d]) data.records[d] = [];
+    var ri = editingRec ? data.records[d].indexOf(editingRec) : -1;
+    if(ri > -1){
+      data.records[d][ri] = rec;
+      exitEditUI();
+    } else {
+      data.records[d].push(rec);
+    }
+    saveData();
+    resetForm(true);
+    renderToday();
+  };
+  document.getElementById("btnCancelEdit").onclick = function(){
+    exitEditUI();
+    resetForm(true);
+  };
+
+  /* ---------- CSV 导出 / 导入 ---------- */
+  function download(filename, content, mime){
+    var blob = new Blob([content], { type: mime || "text/plain;charset=utf-8" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  /* 生成 UTF-16LE(小端)+ BOM 字节:Excel(Win/Mac)双击均能正确识别中文,根治乱码 */
+  function csvUtf16le(str){
+    var bytes = new Uint8Array(str.length * 2 + 2);
+    bytes[0] = 0xFF; bytes[1] = 0xFE;            // UTF-16LE BOM
+    for(var i = 0; i < str.length; i++){
+      var c = str.charCodeAt(i);
+      bytes[2 + i*2]     = c & 0xFF;
+      bytes[2 + i*2 + 1] = (c >> 8) & 0xFF;
+    }
+    return bytes;
+  }
+  /* 读文件:依据 BOM 自动判定 UTF-16LE / UTF-16BE / UTF-8,保证导出文件可回导 */
+  function readFile(file, cb){
+    var r = new FileReader();
+    r.onload = function(){
+      var u8 = new Uint8Array(r.result);
+      var enc = "UTF-8";
+      if(u8.length >= 2 && u8[0] === 0xFF && u8[1] === 0xFE) enc = "UTF-16LE";
+      else if(u8.length >= 2 && u8[0] === 0xFE && u8[1] === 0xFF) enc = "UTF-16BE";
+      var r2 = new FileReader();
+      r2.onload = function(){ cb(r2.result); };
+      r2.readAsText(file, enc);
+    };
+    r.readAsArrayBuffer(file.slice(0, 2));
+  }
+  function csvEscape(v){
+    v = (v === null || v === undefined) ? "" : String(v);
+    if(/[",\n\r]/.test(v)){ v = '"' + v.replace(/"/g, '""') + '"'; }
+    return v;
+  }
+  function toCSV(rows){ return rows.map(function(r){ return r.map(csvEscape).join(","); }).join("\r\n"); }
+  function parseCSV(text){
+    if(text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    var rows = [], row = [], field = "", i = 0, inQ = false;
+    while(i < text.length){
+      var c = text[i];
+      if(inQ){
+        if(c === '"'){
+          if(text[i+1] === '"'){ field += '"'; i += 2; continue; }
+          inQ = false; i++; continue;
+        }
+        field += c; i++; continue;
+      } else {
+        if(c === '"'){ inQ = true; i++; continue; }
+        if(c === ','){ row.push(field); field = ""; i++; continue; }
+        if(c === '\r'){ i++; continue; }
+        if(c === '\n'){ row.push(field); rows.push(row); row = []; field = ""; i++; continue; }
+        field += c; i++; continue;
+      }
+    }
+    if(field !== "" || row.length){ row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  /* 全部导出:所有日期的记录,按食物展开成多行 */
+  document.getElementById("btnExportAll").onclick = function(){
+    var header = ["日期","时段","类型","食物","做法","份量","几分饱","目的","备注"];
+    var rows = [header];
+    Object.keys(data.records).sort().forEach(function(dt){
+      (data.records[dt] || []).forEach(function(r){
+        var times = getTimes(r).join(",");
+        var foods = r.foods || [];
+        if(foods.length === 0){
+          rows.push([dt, times, r.type, "", "", "", r.fullness||"", r.motive||"", r.note||""]);
+        } else {
+          foods.forEach(function(f){
+            var info = (r.foodInfo && r.foodInfo[f]) || {};
+            rows.push([dt, times, r.type, f, info.method||"", info.portion||"", r.fullness||"", r.motive||"", r.note||""]);
+          });
+        }
+      });
+    });
+    download("diet-records-" + nowStamp() + ".csv", csvUtf16le(toCSV(rows)), "text/csv;charset=utf-16");
+  };
+  document.getElementById("btnImportAll").onclick = function(){ document.getElementById("fileImportAll").click(); };
+  document.getElementById("fileImportAll").onchange = function(e){
+    var file = e.target.files[0]; if(!file) return;
+    readFile(file, function(text){
+      try{
+        var rows = parseCSV(text);
+        if(rows.length < 1) throw 0;
+        var hdr = rows[0].map(function(x){ return (x||"").trim(); });
+        var hasHdr = hdr.indexOf("日期") > -1;
+        var start = hasHdr ? 1 : 0;
+        var col = function(name, def){ var i = hdr.indexOf(name); return i > -1 ? i : def; };
+        var iDate = col("日期",0), iTime = col("时段",1), iType = col("类型",2), iFood = col("食物",3),
+            iMethod = col("做法",4), iPortion = col("份量",5), iFull = col("几分饱",6), iMot = col("目的",7), iNote = col("备注",8);
+        var groups = {};
+        for(var i = start; i < rows.length; i++){
+          var r = rows[i];
+          if(!r || r.length === 0) continue;
+          var date = (r[iDate]||"").trim(); if(!date) continue;
+          var times = (r[iTime]||"").split(",").map(function(s){return s.trim();}).filter(Boolean);
+          var type = (r[iType]||"").trim() || TYPES[0];
+          var food = (r[iFood]||"").trim();
+          var gkey = [date, times.join(","), type, (r[iFull]||"").trim(), (r[iMot]||"").trim(), (r[iNote]||"").trim()].join("||");
+          if(!groups[gkey]) groups[gkey] = { date:date, times:times, type:type, foods:[], foodInfo:{},
+            fullness: ((r[iFull]||"").trim()?Number((r[iFull]||"").trim()):0), motive:(r[iMot]||"").trim(), note:(r[iNote]||"").trim() };
+          if(food && groups[gkey].foods.indexOf(food) === -1){
+            groups[gkey].foods.push(food);
+            groups[gkey].foodInfo[food] = { method:(r[iMethod]||""), portion:(r[iPortion]||"") };
+          }
+        }
+        var n = 0;
+        Object.keys(groups).forEach(function(k){
+          var g = groups[k];
+          if(!data.records[g.date]) data.records[g.date] = [];
+          data.records[g.date].push({ times:g.times, type:g.type, foods:g.foods, foodInfo:g.foodInfo, fullness:g.fullness, motive:g.motive, note:g.note });
+          n++;
+        });
+        saveData(); renderToday();
+        alert("导入成功,共导入 " + n + " 条记录(已追加)");
+      }catch(err){ alert("导入失败:文件格式不正确"); }
+    });
+    e.target.value = "";
+  };
+
+  /* 食物导出/导入:操作 data.foods(按类型分类) */
+  document.getElementById("btnExportFoods").onclick = function(){
+    var rows = [TYPES.slice()]; // 表头:正餐,饮品,零食,水果
+    var maxLen = 0;
+    TYPES.forEach(function(t){ maxLen = Math.max(maxLen, (data.foods[t]||[]).length); });
+    for(var i = 0; i < maxLen; i++){
+      rows.push(TYPES.map(function(t){ return (data.foods[t]||[])[i] || ""; }));
+    }
+    download("diet-foods-" + nowStamp() + ".csv", csvUtf16le(toCSV(rows)), "text/csv;charset=utf-16");
+  };
+  document.getElementById("btnImportFoods").onclick = function(){ document.getElementById("fileImportFoods").click(); };
+  document.getElementById("fileImportFoods").onchange = function(e){
+    var file = e.target.files[0]; if(!file) return;
+    readFile(file, function(text){
+      try{
+        var rows = parseCSV(text);
+        if(rows.length < 1) throw 0;
+        var hdr = rows[0].map(function(x){ return (x||"").trim(); });
+        // 新格式:表头含四个类型(正餐/饮品/零食/水果)之一 → 按列解析;否则按旧两列(类型/食物)解析
+        var colOf = {}; TYPES.forEach(function(t){ colOf[t] = hdr.indexOf(t); });
+        var isNew = TYPES.some(function(t){ return colOf[t] > -1; });
+        if(isNew){
+          var added = 0, dup = 0;
+          for(var i = 1; i < rows.length; i++){
+            var r = rows[i]; if(!r) continue;
+            TYPES.forEach(function(t){
+              var ci = colOf[t];
+              if(ci < 0 || ci >= r.length) return;
+              var f = (r[ci]||"").trim(); if(!f) return;
+              if(data.foods[t].indexOf(f) === -1){ data.foods[t].push(f); added++; }
+              else { dup++; }
+            });
+          }
+          saveData();
+          var msg = "食物导入完成,新增 " + added + " 个选项";
+          if(dup) msg += "(已存在跳过 " + dup + " 个)";
+          alert(msg);
+        } else {
+          // 旧格式:类型/食物 两列(向后兼容)
+          var hasHdr = hdr.indexOf("类型") > -1 || hdr.indexOf("食物") > -1;
+          var start = hasHdr ? 1 : 0;
+          var iT = hdr.indexOf("类型") > -1 ? hdr.indexOf("类型") : 0;
+          var iF = hdr.indexOf("食物") > -1 ? hdr.indexOf("食物") : 1;
+          var added2 = 0, skipType = 0, skipEmpty = 0;
+          for(var j = start; j < rows.length; j++){
+            var rr = rows[j];
+            if(!rr || rr.length < 2) continue;
+            var t2 = (rr[iT]||"").trim();
+            var f2 = (rr[iF]||"").trim();
+            if(!f2){ skipEmpty++; continue; }
+            if(TYPES.indexOf(t2) === -1){ skipType++; continue; }
+            if(data.foods[t2].indexOf(f2) === -1){ data.foods[t2].push(f2); added2++; }
+          }
+          saveData();
+          var msg2 = "食物导入完成,新增 " + added2 + " 个选项";
+          if(skipType || skipEmpty){
+            msg2 += "(跳过 " + (skipType + skipEmpty) + " 行:类型不是「正餐/饮品/零食/水果」" + skipType + " 个、食物为空 " + skipEmpty + " 个)";
+          }
+          alert(msg2);
+        }
+      }catch(err){ alert("导入失败:文件格式不正确"); }
+    });
+    e.target.value = "";
+  };
+
+  /* ---------- 复制到剪切板 ---------- */
+  function buildCopyText(){
+    var list = currentRecords().slice().sort(function(a,b){
+      var at = getTimes(a)[0] || "", bt = getTimes(b)[0] || "";
+      return at.localeCompare(bt);
+    });
+    var lines = [fmtDateByStr(curDate) + " 饮食记录 v3"];
+    if(list.length === 0){
+      lines.push("（暂无记录）");
+      return lines.join("\n");
+    }
+    list.forEach(function(r, i){
+      var foodsTxt = (r.foods || []).map(function(f){
+        var info = (r.foodInfo && r.foodInfo[f]) || {};
+        var t = f;
+        if(info.method || info.portion){
+          var p = [];
+          if(info.method) p.push("做法" + info.method);
+          if(info.portion) p.push("份量" + info.portion);
+          t += "（" + p.join("；") + "）";
+        }
+        return t;
+      }).join("、");
+      var s = (i+1) + ". " + showTimes(r) + " " + r.type + "：" + foodsTxt;
+      var meta = [];
+      if(r.amount) meta.push("份量" + r.amount);
+      if(r.fullness) meta.push(r.fullness + "分饱");
+      if(r.motive) meta.push("目的" + r.motive);
+      if(meta.length) s += "（" + meta.join("；") + "）";
+      if(r.note) s += " 备注：" + r.note;
+      lines.push(s);
+    });
+    return lines.join("\n");
+  }
+  function copyToClipboard(text, btn){
+    function ok(){
+      var old = btn.textContent;
+      btn.textContent = "已复制 ✓"; btn.classList.add("ok");
+      setTimeout(function(){ btn.textContent = old; btn.classList.remove("ok"); }, 1500);
+    }
+    function fallback(){
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed"; ta.style.top = "-9999px"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      try{ document.execCommand("copy"); ok(); }
+      catch(e){ alert("复制失败,请手动长按选择文本复制"); }
+      ta.remove();
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(ok, fallback);
+    } else { fallback(); }
+  }
+  document.getElementById("btnCopy").onclick = function(){
+    copyToClipboard(buildCopyText(), this);
+  };
+
+  /* ---------- 日期切换 ---------- */
+  function refreshDateUI(){
+    var parts = fmtDateByStr(curDate).split(" · ");
+    document.getElementById("weekLine").textContent = parts[1] || "";
+    document.getElementById("backToday").style.display = isToday() ? "none" : "inline-block";
+    document.getElementById("recMode").style.display = isToday() ? "none" : "inline-block";
+  }
+  document.getElementById("dateInput").value = curDate;
+  document.getElementById("dateInput").max = todayStr();
+  document.getElementById("dateInput").addEventListener("change", function(e){
+    if(!e.target.value) return;
+    curDate = e.target.value;
+    if(editingRec) exitEditUI();
+    refreshDateUI();
+    renderToday();
+  });
+  document.getElementById("backToday").onclick = function(){
+    curDate = todayStr();
+    document.getElementById("dateInput").value = curDate;
+    if(editingRec) exitEditUI();
+    refreshDateUI();
+    renderToday();
+  };
+
+  /* ---------- 折叠说明 ---------- */
+  document.getElementById("hintToggle").onclick = function(){
+    var t = this, b = document.getElementById("hintBody");
+    var open = t.classList.toggle("open");
+    b.classList.toggle("open");
+    t.querySelector("span:last-child").textContent = open ? "使用说明（点击收起）" : "使用说明（点击展开）";
+  };
+
+  /* ---------- 初始化 ---------- */
+  refreshDateUI();
+  renderToday();
+})();
+</script>
+</body>
+</html>
